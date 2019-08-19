@@ -26,6 +26,7 @@ docker 中文意思为 码头工人，把应用当集装箱的概念, 它其实�
 简单的来说 docker容器技术就是将应用以及对应的系统环境（基本的操作系统，以及运行环境）打成一个包，这个包就叫做镜像，把镜像
 扔进docker引擎中就可以直接运行了，比如将mysql跟centos打成一个镜像，在有docker引擎的机器上，直接docker run就完成mysql的部署了
 
+---
 # docker 实现原理
 ## namespace、cgroup
 关于namespace以及cgroup 做下简单说明，如果需要深入 请自行谷歌
@@ -58,6 +59,7 @@ net_cls|提供对网络带宽的访问限制，比如对发送带宽和接收带
 
 还有其他子系统，这里就不一一列举了。
 
+---
 # docker vs vm
 docker 也是虚拟化技术的一种，不过它比传统的vm更加轻量、快速，
 更关键的是他能提供一个统一的、可控的软件环境，有点类似jvm 跨平台一样，一次编译到处运行；这使得软件的开发以及交付 对于vm是一种质飞跃。
@@ -92,6 +94,7 @@ docker 直接通过 LXC 与 宿主机 共享内核 在操作系统级别进行�
     
 这些都是一个容器跑多个程序做不到，不过这仅仅是我个人的一些见解。
 
+---
 # docker基本概念
 其实容器虚拟化技术很早就有了，那为什么现在才突出重围，docker做了哪些改变才是容器爆发出来？
 
@@ -105,12 +108,14 @@ docker 最大的突破是引入镜像技术，可以让开发者轻松打包他�
 仓库：就是存放镜像的地方，可以理解为代码控制中的代码仓库
 
 
+---
 # docker运行架构
 ![docker 运行流程](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/kubernetes/docker/docker03.png)
  
 docker 也是c/s架构 ，基本运行流程是这样的：用户通过docker client(docker) 与docker daemon(dockerd) 通信，docker daemon 接收请求后，查询本地是否存有对应镜像，如果有就使用本地镜像，启动
 对应容器，如果没有就去指定 Registry 仓库拉取，然后存在本地，再执行启动步骤。
 
+---
 # docker镜像
 ## image
 比如你要制作一个jdk 镜像  你只需要 引入一个基础系统镜像 在加一个jdk环境即可  然后 把两层 一起挂载起来 就完成了 一个jdk 环境 保存成一个专有文件系统的文件就是镜像文件了。
@@ -142,6 +147,7 @@ echo '{ "insecure-registries":["registry.xxx.com:5000","xxx.xxx.xxx.xxx:5000"] }
 ```
 > docker 镜像技术 实现了容器 分层构建 联合挂载，使用镜像仓库使得容器能快速部署、标准化移植交付。
 
+---
 # docker安装
 ## 移除老版本
 ```bash
