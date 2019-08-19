@@ -66,7 +66,7 @@ docker 也是虚拟化技术的一种，不过它比传统的vm更加轻量、�
 
 # 两者对比图：
 ## 架构对比
-![架构对比](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/kubernetes/docker/container_vm.jpeg)
+![架构对比](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker/container_vm.jpeg)
     
 > 很明显docker 与 vm 最大的区别是: 
 vm 需要先去虚拟一堆硬件，然后在此之上新建一个os，还得去部署运行环境才能运行应用，
@@ -110,7 +110,7 @@ docker 最大的突破是引入镜像技术，可以让开发者轻松打包他�
 
 ---
 # docker运行架构
-![docker 运行流程](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/kubernetes/docker/docker03.png)
+![docker 运行流程](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker/docker03.png)
  
 docker 也是c/s架构 ，基本运行流程是这样的：用户通过docker client(docker) 与docker daemon(dockerd) 通信，docker daemon 接收请求后，查询本地是否存有对应镜像，如果有就使用本地镜像，启动
 对应容器，如果没有就去指定 Registry 仓库拉取，然后存在本地，再执行启动步骤。
