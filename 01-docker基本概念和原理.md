@@ -18,7 +18,7 @@
 1. 准备基础系统，安装Docker
 2. docker run -v /xxx/xx.war:/usr/local/tomcat/webapps -p 8080:8080 tomcat:8 
 ```
-> 一条命令就完成了部署！！而快速部署这仅仅是docker魅力之一，下面就来简单的说说docker。
+> 有了docker，在应用部署时，无需关系底层系统到底的 centos 还是 ubantu，应用环境的版本是不是一致，只要有docker，一条命令就完成了部署！！而快速部署这仅仅是docker魅力之一，下面就来简单的说说docker。
 
 docker 中文意思为 码头工人，把应用当集装箱的概念, 它其实也是虚拟化的一种实现，只不过是更轻量级的容器虚拟化；主要利用linux内核中的Namespaces
 以及Cgroup，沙箱机制、进行内核级别的资源隔离以及限制。
@@ -166,17 +166,20 @@ yum remove docker \
 ```bash
 yum install -y yum-utils device-mapper-persistent-data lvm2
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-yum install docker-ce
+yum install docker-ce docker-ce-cli containerd.io
 systemctl start docker
+systemctl enable docker
 docker info
 ```
+> 建议安装docker前升级 系统内核 ，避免老版本内核 各种bug ，这里推荐4.19.x lt版本。
 > [官方安装文档连接](https://docs.docker.com/install/linux/docker-ce/centos/#set-up-the-repository)
 
 ## 配置加速器和存放路径
 ```bash
 cat /etc/docker/daemon.json
 {
-  "registry-mirrors": ["https://registry.docker-cn.com", "https://docker.mirrors.ustc.edu.cn"],
+  "registry-mirrors": ["https://dockerhub.azk8s.cn", "https://docker.mirrors.ustc.edu.cn"],
+  "insecure-registries": ["127.0.0.1/8"],
   "max-concurrent-downloads": 10,
   "log-driver": "json-file",
   "log-level": "warn",
@@ -184,6 +187,12 @@ cat /etc/docker/daemon.json
     "max-size": "10m",
     "max-file": "3"
     },
-  "graph": "/opt/docker"
+  "data-root": "/opt/docker"
 }
 ```
+
+# 推荐链接：
+- 官方文档： [Docker Documentation](https://docs.docker.com)
+- dockerinfo文档： [dockerinfo](http://www.dockerinfo.net/document)
+- runoob文档： [runoob](https://www.runoob.com/docker/docker-tutorial.html)
+- 云栖社区文档： [云栖社区文档](https://yq.aliyun.com/articles/713839?spm=a2c4e.11155435.0.0.47b366bbpsiI7S)
