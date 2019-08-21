@@ -1,16 +1,89 @@
-# 前言
-docker存储目前分两类：
+> docker 之所以成功，很关键的因素就是镜像技术，而镜像分层这一特性 就靠 docker独特的联合挂载文件系统实现的，这就不得不提AUFS了。
 
-- storage driver ： 镜像和容器文件系统
-- data volume： 有状态数据保持
+# AUFS
+AUFS Advance UnionFS 的简称，是 UnionFS 后期版本，UnionFS 是一个联合目录挂载文件系统，目的就是把不同物理位置的目录合并mount到同一个目录中进行读写操作。
+AUFS作者也是挺有意思的一个日本人，不过由于项目代码质量被Linus鄙视，至今AUFS也没进入linux主干中，不过还好比较激进的ubantu接纳了他，现在这么多人能使用它这种思想的文件系统也算是一种成功了。
+那我们先简单来说下AUFS。
 
-下面我们来分开简单介绍下这两类存储
+我们一起来做个AUFS示例：
+```bash
+# 先创建两个目录，然后进行联合挂载，我这里使用的ubantu系统 centos要使用AUFS需要升级带aufs模块的内核。
+root@shadowsocket01:~/test# tree
+.
+├── a
+│   ├── 1
+│   └── 2
+└── b
+    ├── 2
+    └── 3
 
-# storage driver
-docker 基本概念和原理中说明了 docker image 是通过 分层构建 联合挂载来实现的，早期  storage driver 为AUFS，目前docker 18.x 默认为
-OverlayFS（overlay2），它可以看做AUFS的升级加强版，两者基本原理类似：
+2 directories, 4 files
+root@shadowsocket01:~/test# mkdir mnt
+root@shadowsocket01:~/test# mount -t aufs -o dirs=./a:./b none ./mnt
+
+# 往 mnt 2中写入内容
+root@shadowsocket01:~/test# echo 'test' > ./mnt/2
+root@shadowsocket01:~/test# cat a/2
+test
+root@shadowsocket01:~/test# cat b/2
+root@shadowsocket01:~/test#
+# 可以看到 a/2 内容变了，而 b/2 却没变
+# 这是因为 aufs 默认上来说，命令行上第一个（最左边）的目录是可读可写的，后面的全都是只读的。
+
+# 当然我们也可以指定权限 进行挂载
+root@shadowsocket01:~/test# > ./mnt/2
+root@shadowsocket01:~/test# cat a/2
+root@shadowsocket01:~/test# cat b/2
+root@shadowsocket01:~/test# umount ./mnt
+root@shadowsocket01:~/test# mount -t aufs -o dirs=./a=rw:./b=rw none ./mnt
+root@shadowsocket01:~/test# echo 'test' > ./mnt/2
+root@shadowsocket01:~/test# cat a/2
+test
+root@shadowsocket01:~/test# cat b/2
+root@shadowsocket01:~/test#
+# 可见，如果有重复的文件名，在mount命令行上，越往前的就优先级越高，只对优先级高的进行操作。
+
+```
+通过上面的示例我们简单了解了下 AUFS 的大体 操作流程，docker镜像就是 由一层层的文件系统 联合挂载实现的，从而比较完美实现了 镜像的封装 分发：
+
+比如我们想做一个 java应用镜像 其Dockerfile如下：
+> dockerfile 是制作自定义镜像一种 标准通用镜像打包 文件格式，后续会详细讲解
+
+```dockerfile
+# 使用官方提供的java环境作为基础镜像
+FROM java:8-jre
+MAINTAINER Li Sen <lisen2023@gmail.com>
+
+# 对基础镜像进行本地化 改造
+RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo 'Asia/Shanghai' >/etc/timezone && \
+    echo "export LC_ALL=en_US.UTF-8" >> /etc/profile && \
+    . /etc/profile
+
+# 将工作目录切换为/app， 相当于linux中的cd
+WORKDIR /opt
+
+# 拷贝 当前目录的 jar包 到 镜像中的/opt下
+COPY app.jar /opt/app.jar
+
+# 暴露容器的 8080端口
+EXPOSE 8080
+
+# 容器的启动命令
+CMD java $JAVA_OPTS $SKYWALKING_OPTS -jar app.jar
+
+```
+通过以上 文件的内容可以清晰看到一个 自定义的镜像的操作流程，那docker 是怎么 通过镜像 运行的呢？那我们来了解下docker容器的文件系统：
 
 docker 容器运行 ，容器的最上层是一个可读写的临时层，下面是只读的镜像层，他们以从下往上以栈的方式联合挂载。
+
+Init层 在只读层和读写层之间。Init层是Docker项目单独生成的一个内部层，专门用来存放/etc/hosts、/etc/resolv.conf等信息。
+这些文件本来属于只读镜像层的一部分，但是用户往往需要在启动容器时写入一些指定的值比如hostname，所以就需要在可读写层对它们进行修改。
+可是，这些修改往往只对当前的容器有效，我们并不希望执行docker commit时，把这些信息连同可读写层一起提交掉。
+所以，Docker做法是，在修改了这些文件之后，以一个单独的层挂载了出来。而用户执行docker commit只会提交可读写层，所以是不包含这些内容的。
+
+当我们在运行的容器中 修改一个文件时，该文件会 从
+镜像只读层中 复制一份到 容器运行 的读写层 进行修改，而只读版本仍然存在于 镜像层中，只是 在读写层中进行了 隐藏屏蔽， 这样就避免了 对镜像层的 修改，保证了镜像的 一致性。
 
 ![容器文件系统](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker/docker_fs.png)
 
@@ -28,7 +101,27 @@ docker 容器运行 ，容器的最上层是一个可读写的临时层，下面
 > AUFS实现原理: [AUFS](http://www.youruncloud.com/blog/120.html)  
 > 使用OverlayFS 从3.18开始，才进入了Linux内核主线，建议进行内核升级，最好是4.xx 较新的ml或lt版本。
 
-从上所知，无状态的容器中的数据，让storage driver 自行维护是比较推荐的做法，但对于一些有状态的容器，比如 数据库容器、中间件容器等，这些
+通过 镜像的分层设计， 大家可以在 各种官方镜像的基础上，进行增量的操作封装 ；在满足各自的需求同时，用户频繁拉取不同镜像会有很大一定的比例很多镜像层是重复的，
+比如拉取一个java镜像 跟一个 mysql镜像 其底层镜像 可能都是 一个 alpine 基础镜像，用户就可以复用之前的基础镜像 只要拉取 对应改动 镜像层即可，极大的减小了 镜像 分发部署时的 网络流量 镜像大小 下载速度。
+
+不过 容器 有一个特性就是 当 运行容器 被删后，其读写层中的数据 也会被删掉，如要保留 需要 使用 volume 进行挂载到本地进行存储。
+
+那么下面来简单讲下docker的存储
+
+# docker 存储
+docker存储目前分两类：
+
+- storage driver ： 镜像和容器文件系统
+- data volume： 有状态数据保持
+
+下面我们来分开简单介绍下这两类存储
+
+## storage driver
+docker 基本概念和原理中说明了 docker image 是通过 分层构建 联合挂载来实现的，早期  storage driver 为AUFS，目前docker 18.x 默认为
+OverlayFS（overlay2），它可以看做AUFS的升级加强版，两者基本原理类似：
+
+
+从docker的文件系统特性所知，无状态的容器中的数据，让storage driver 自行维护是比较推荐的做法，但对于一些有状态的容器，比如 数据库容器、中间件容器等，这些
 数据是要持久性保存的，也就是说容器挂了，容器数据必须还在，数据可能在宿主机本地或者是网络存储，只要重启一个容器挂载之前的存储就可以恢复了，这就
 得介绍下docker data volume 也就是数据卷。
 
