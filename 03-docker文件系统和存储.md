@@ -93,7 +93,7 @@ docker 容器运行 ，容器的最上层是一个可读写的临时层，下面
 所以，Docker做法是，在修改了这些文件之后，以一个单独的层挂载了出来。而用户执行docker commit只会提交可读写层，所以是不包含这些内容的。
 
 当我们在运行的容器中 修改一个文件时，该文件会 从
-镜像只读层中 复制一份到 容器运行 的读写层 进行修改，而只读版本仍然存在于 镜像层中，只是 在读写层中进行了 隐藏屏蔽， 这样就避免了 对镜像层的 修改，保证了镜像的 一致性。
+镜像只读层中 复制一份到 容器运行 的读写层 进行修改，而只读版本仍然存在于 镜像层中，只是 在读写层中进行了 隐藏屏蔽， 这样就避免了 对镜像层的 修改，保证了镜像的 一致性 和 可移植性。
 
 ![容器文件系统](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker/docker_fs.png)
 
@@ -109,15 +109,12 @@ docker 容器运行 ，容器的最上层是一个可读写的临时层，下面
 - 性能：AUFS 的 CoW 特性在写入大型文件时第一次会出现延迟
 
 > AUFS实现原理: [AUFS](http://www.youruncloud.com/blog/120.html)  
-> 使用OverlayFS 从3.18开始，才进入了Linux内核主线，建议进行内核升级，最好是4.xx 较新的ml或lt版本。
+> 建议使用OverlayFS：从3.18开始，才进入了Linux内核主线，建议进行内核升级，最好是4.xx 较新的ml或lt版本。
 
 通过 镜像的分层设计， 大家可以在 各种官方镜像的基础上，进行增量的操作封装 ；在满足各自的需求同时，用户频繁拉取不同镜像会有很大一定的比例很多镜像层是重复的，
 比如拉取 或者 运行 一个java镜像 跟一个 mysql镜像 其底层镜像 可能都是 一个 alpine 基础镜像，用户就可以复用之前的基础镜像 只要拉取 对应改动 镜像层即可，极大的减小了 镜像 分发部署时的 启动速度 网络流量 镜像大小 下载速度。
 
 不过 容器 有一个特性就是 当 运行容器 被删后，其读写层中的数据 也会被删掉，如要保留 需要 使用 volume 进行挂载到本地进行存储。
-
-那么下面来简单讲下docker的存储
-
 
 ## OverlayFS
 docker 基本概念和原理中说明了 docker image 是通过 分层构建 联合挂载来实现的，早期  storage driver 为AUFS，目前docker 18.x 默认为
@@ -261,6 +258,7 @@ root@test01:~#
 # data volume
 docker 的数据卷，简单来说就是将 宿主机或网络存储 以文件或目录方式，可读写的挂载到容器中，这样即使容器挂了，但它数据还在,
 从而实现了容器中的应用跟数据进行了解耦。
+> 如果容器对 存储有性能要求 一般都会使用 Volume 挂载 指定目录 来提升性能。
 
 ## volume type
 docker中有两种类型的数据卷：
@@ -314,17 +312,17 @@ docker cp ./index.html containerid:/opt/html/
 volume container 是专门为其他容器提供 volume 的容器。它提供的卷可以是 bind mount，也可以是 docker managed volume，
 共享volume container 时 用 --volumes-from 参数指定。
 ```bash
-[root@app001 html]# echo 'my nginx!!' > index.html
+[root@test01 html]# echo 'my nginx!!' > index.html
 # volume container 一般只要create 就行了，不行run 起来
-[root@app001 test]# docker create --name my-nginx -v /root/test/html:/usr/share/nginx/html/ nginx:latest
+[root@test01 test]# docker create --name my-nginx -v /root/test/html:/usr/share/nginx/html/ nginx:latest
 4f29f1d8f76d7c8338d46d47b920acd49fbbaac81b5a1b31babc9271692421f7
-[root@app001 test]# docker run -itd --name test1 -p 1180:80 --volumes-from my-nginx nginx:latest
+[root@test01 test]# docker run -itd --name test1 -p 1180:80 --volumes-from my-nginx nginx:latest
 57d83a09b216801adfbc0c27df2924da0d484d10bbe9a5b700de40187c8752dc
-[root@app001 test]# curl 127.0.0.1:1180
+[root@test01 test]# curl 127.0.0.1:1180
 my nginx!!
-[root@app001 test]# docker run -itd --name test2 -p 1181:80 --volumes-from my-nginx nginx:latest
+[root@test01 test]# docker run -itd --name test2 -p 1181:80 --volumes-from my-nginx nginx:latest
 f55396966e6bec9c4ac94512dee677d2bcfdf5d9ec0f3ee4180db961115c080d
-[root@app001 test]# curl 127.0.0.1:1181
+[root@test01 test]# curl 127.0.0.1:1181
 my nginx!!
   ```
 > 使用volume container 后，我们不必要一个个去指定运行容器的 host path，所有path都在 volume container 中就定义好了，基于volume container run起来就完成了，
@@ -333,11 +331,11 @@ my nginx!!
 volume container 的数据归根到底还是在 host 上，要完全解耦host，只能通过将数据打包进镜像的方式
 ，然后 将此容器 当作 volume container 。
 ```bash
-[root@app001 test]# cat Dockerfile
+[root@test01 test]# cat Dockerfile
 FROM nginx:latest
 COPY html/index.html /usr/share/nginx/html/index.html
 VOLUME /usr/share/nginx/html/
-[root@app001 test]# docker build -t test.com/nginx:v1 .
+[root@test01 test]# docker build -t test.com/nginx:v1 .
 Sending build context to Docker daemon  3.584kB
 Step 1/3 : FROM nginx:latest
  ---> 62f816a209e6
@@ -349,11 +347,11 @@ Removing intermediate container 33659f1dd261
  ---> a5000c3bc611
 Successfully built a5000c3bc611
 Successfully tagged test.com/nginx:v1
-[root@app001 test]# docker create --name test03 test.com/nginx:v1
+[root@test01 test]# docker create --name test03 test.com/nginx:v1
 60bae84035d6a01576bcf2b28d84fe9b5fa892ff19cc430172ba4ac3d93257d2
-[root@app001 test]# docker run -itd --name test04 -p 1182:80 --volumes-from test03 nginx:latest
+[root@test01 test]# docker run -itd --name test04 -p 1182:80 --volumes-from test03 nginx:latest
 550a75b39b283334fe31de4f593d9cadc7a7846b9889ff3fca063fe226b66966
-[root@app001 test]# curl 127.0.0.1:1182
+[root@test01 test]# curl 127.0.0.1:1182
 my nginx!!
 ```
 > 使用 data-packed volume container 可以完全解耦 宿主机，具有很强的一致性，不过这种容器间数据共享的场景不多，基本很少使用。
