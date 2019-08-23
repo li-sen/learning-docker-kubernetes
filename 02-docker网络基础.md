@@ -308,6 +308,7 @@ docker run --name my_db -e MYSQL_ROOT_PASSWORD=123456 -d mysql
 #创建一个应用，并使用刚才创建的mysql容器服务（网络是连通的）
 docker run --name myweb --link my_db:mysql -p 8001:80 -d nginx
 ```
+> 实际情况很少使用link，后续新版本提供了docker network来替代 link方式，大家了解就好。
 
 ## bridge网络连通性
 - 不通的bridge之间默认不通的，要相通，采取以下措施：

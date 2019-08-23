@@ -22,6 +22,13 @@ docker run --name mydocker -itd centos
 # -d 让容器在后台运行
 # --rm 运行后删除
 
+# docker网络
+# 新建docker网络
+docker network create redis-net
+docker run --name redis -d --restart=always -e TZ="Asia/Shanghai" --network=redis-net -P  -v /opt/redis/data:/data  redis:latest redis-server --appendonly yes --requirepass "xxxxx"
+# 查看新建网络
+docker network inspect  redis-net
+
 # 端口映射
 docker run -itd -p 80 nginx:v1 /bin/bash  # 端口随机
 docker run -itd -p 8080:80 nginx:v1 /bin/bash # 端口指定
@@ -92,6 +99,13 @@ docker rm -f mydocker
 docker cp Name:/container_path to_path  
 docker cp ID:/container_path to_path
 
+12. docker 查看容器ip
+docker inspect --format='{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -aq)
+
+13. docker 内存 排序
+docker stats --no-stream --format "table {{.Name}}\t{{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" | sort -k 4 -h
+14. cpu排序
+docker stats --no-stream --format "table {{.Name}}\t{{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" | sort -k 3 -h
 ```
 
 # docker 镜像操作
@@ -145,11 +159,11 @@ docker images |grep mariadb
  
 9. docker save
 # 导出镜像
-docker save -o ubuntu_latest.tar.gz ubuntu:latest
+docker save  ubuntu:latest |gzip > ubuntu.gz
 
 10. docker load
 # 导入镜像
-docker load < ubuntu_latest.tar.gz
+docker load < ubuntu.gz
 
 11. docker tag
 # 镜像打标签
@@ -158,6 +172,19 @@ docker tag  ubuntu:latest  harbor.xxx.com/pub/ubuntu:latest
 12. docker push
 # 推送镜像
 docker push harbor.xxx.com/pub/ubuntu:latest
+
+13. dockerfile构建
+cat Dockerfile
+FROM java:8-jre
+MAINTAINER Li Sen <lisen2023@gmail.com>
+RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo 'Asia/Shanghai' >/etc/timezone && \
+    echo "export LC_ALL=en_US.UTF-8" >> /etc/profile && \
+    . /etc/profile
+
+docker build -t 172.16.100.86/pub/springboot:v1 .
+docker push 172.16.100.86/pub/springboot:v1
+docker images
 ```
 
 # volume管理
@@ -174,13 +201,6 @@ docker volume rm $(docker volume ls -q)
 
 # 其他常用命令
 ```bash
-# docker 查看容器ip
-docker inspect --format='{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -aq)
-
-# 查看docker 内存 排序
-docker stats --no-stream --format "table {{.Name}}\t{{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" | sort -k 4 -h
-# cpu排序
-docker stats --no-stream --format "table {{.Name}}\t{{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" | sort -k 3 -h
 
 # 新建docker网络
 docker network create redis-net
@@ -226,4 +246,34 @@ docker network rm $(docker network ls -q)
 # .dockerignore使用
 
 类似.gitignore一样，运行Dockerfile里的COPY指令的时候会根据.dockerignore进行部分目录或者文件忽略。
+
+
+# docker 升级脚本
+cat update_docker.sh
+#!/bin/bash
+node=$1
+role=$2
+kubectl drain $node --ignore-daemonsets --delete-local-data --force \
+&& sleep 30 \
+&& kubectl delete node  $node \
+&& echo "$node $role delete  successful!" \
+&& sleep 3 \
+&& ansible $node -m copy -a 'src=/opt/bin/docker/xxxx dest=/opt/bin/docker/xxxx mode=0744' \
+&& ansible $node -m shell -a "systemctl restart docker" \
+&& sleep 3 \
+&& ansible $node -m shell -a "systemctl restart kubelet" \
+&& sleep 30 \
+&& kubectl uncordon $node \
+&& kubectl label node $node kubernetes.io/role=$role --overwrite \
+&& echo "$node $role update docker successful!"
+
+ansible $node -m shell -a "docker ps -a && docker info"
+
+# Debian GNU/Linux 9 :  容器安装软件
+sed -i "s@http://deb.debian.org@http://mirrors.163.com@g" /etc/apt/sources.list
+cat /etc/apt/sources.list
+apt-get update
+apt-get install net-tools
+apt-get install dnsutils
+
 ```
