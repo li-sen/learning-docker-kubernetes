@@ -116,6 +116,12 @@ docker 容器运行 ，容器的最上层是一个可读写的临时层，下面
 
 不过 容器 有一个特性就是 当 运行容器 被删后，其读写层中的数据 也会被删掉，如要保留 需要 使用 volume 进行挂载到本地进行存储。
 
+
+> docker的宿主系统是centos，为什么可以运行ubuntu的镜像？
+
+首先 不论 centos 或 ubantu 都是 基于内核的 不同发行版，用都是linux内核，只是管理工具或图形界面等上层应用不一样而已；
+而docker 是基于 linux 内核 容器技术实现的，docker 可以运行不同linux发行版的原理  就是 对应的发行版 rootfs 结合 宿主机内核 容器就可以启动了。
+
 ## OverlayFS
 docker 基本概念和原理中说明了 docker image 是通过 分层构建 联合挂载来实现的，早期  storage driver 为AUFS，目前docker 18.x 默认为
 OverlayFS（overlay2），它可以看做AUFS的升级加强版，两者基本原理类似：
@@ -355,3 +361,4 @@ Successfully tagged test.com/nginx:v1
 my nginx!!
 ```
 > 使用 data-packed volume container 可以完全解耦 宿主机，具有很强的一致性，不过这种容器间数据共享的场景不多，基本很少使用。
+
