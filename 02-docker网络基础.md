@@ -3,14 +3,10 @@ docker 拥有多方面很好的特性如镜像技术、轻量快速、移植性�
 
 # docker 网络实现
 docker现有的网络模型主要是通过使用network namespace、linux Bridge、iptables、veth pair等技术实现的。
-
-network namespace：主要提供了关于网络资源的隔离，包括网络设备、IPv4和IPv6协议栈、IP路由表、防火墙、/proc/net目录、/sys/class/net目录、端口（socket）等。
-
-linux Bridge：功能相当于物理交换机，为连在其上的设备（容器）转发数据帧。如docker0网桥。
-
-iptables：主要为容器提供NAT以及容器网络安全。
-
-veth pair：两个虚拟网卡组成的数据通道。在Docker中，用于连接Docker容器和Linux Bridge。一端在容器中作为eth0网卡，另一端在Linux Bridge中作为网桥的一个端口。
+- network namespace：主要提供了关于网络资源的隔离，包括网络设备、IPv4和IPv6协议栈、IP路由表、防火墙、/proc/net目录、/sys/class/net目录、端口（socket）等。
+- linux Bridge：功能相当于物理交换机，为连在其上的设备（容器）转发数据帧。如docker0网桥。
+- iptables：主要为容器提供NAT以及容器网络安全。
+- veth pair：两个虚拟网卡组成的数据通道。在Docker中，用于连接Docker容器和Linux Bridge。一端在容器中作为eth0网卡，另一端在Linux Bridge中作为网桥的一个端口。
 
 # docker网络模式
 我们创建docker容器时，可以用 \-\-network string 参数 来指定四种网络模式：host、container、bridge（默认）、none。
