@@ -137,8 +137,8 @@ docker 也是c/s架构 ，基本运行流程是这样的：用户通过docker cl
 > 镜像文件每一层是只读的，要修改 只能在顶层 封装一层自定义的一层  （删除就是在最新一层标记不可见，修改就是复制一份再修改）Copy-on-Write 跟 lvm 快照原理差不多
 
 ## 镜像仓库registry
-镜像仓库跟 包仓库一样，最大的目的就是镜像分发，很好的进行版本管理等
-- registry 用于保存docker的镜像的镜像仓库，用户可以自建registry，也可以用官方的docker hub。
+镜像仓库跟 git仓库类似，最大的目的就是镜像分发，以及对 镜像 进行版本管理等
+> registry 用于保存docker的镜像的镜像仓库，用户可以自建registry，也可以用官方的docker hub。
 
 我们拉镜像如果没指明registry地址默认就是去 docker hub上拉取进行
 ```bash
