@@ -151,9 +151,10 @@ ARG user1=someuser
 ARG buildno=1
 ...
 如果我们给了ARG定义的参数默认值，那么当build镜像时没有指定参数值，将会使用这个默认值
+
 对于这个 参数 适用的场景 比如 我想根据 build 传过来的参数 来决定 打什么样的 镜像，或者 打镜像包时 传 版本号。 
-ARG var
-ENV var=${var}
+ARG JAVA_OPTS="-Xmx2688M -Xms2688M -Xmn960M -XX:MaxMetaspaceSize=256M -XX:MetaspaceSize=256M"
+ENV JAVA_OPTS=${JAVA_OPTS}
 比如这种方式 引用。
 
 STOPSIGNAL
@@ -304,6 +305,29 @@ exec "$@"
 docker run -d --restart=always \
   -e PRO_API_HOST=api.xxx.com\
   xxx
+```
+## .dockerignore 文件
+.dockerignore， 它的功能类似 .gitignore，它需要存放在构建环境根目录下才会起作用，.dockerignore 可以避免和排除不必要的大型或敏感文件和目录进行 ADD 或者 COPY . 拷贝这些文件和目录。
+
+简单的 .dockerignore 文件如下：
+```shell script
+
+# comment
+*/temp*
+*/*/temp*
+temp?
+规则	解释
+# comment	注释，忽略
+*/temp*	排除根目录一级子目录下所有以 temp 开头的文件和目录。如 /somedir/temp、/somedir/temporary.txt 都将会被排除
+*/*/temp*	排除根目录下二级子目录下所有以 temp 开头的文件和目录，如 /somedir/subdir/temporary.txt 会被排除
+temp?	? 号表示占用一个字符串，如 /tempa、/tempb 文件目录都会被排除
+.dockerignore 的匹配规则遵循 Go 的 filepath.Match 规则。除了该规则外，Docker 还支持了一些特殊的通配符，** 匹配任意层级的目录。例如，**/*.go 将排除构建环境根目录下所有以 .go 为后缀的文件。! 表示忽略排除，如下：
+*.md
+!README.md
+表示排除根目录当前层级除了README.md 外所有以 .md 为后缀的文件。
+
+匹配是有顺序的，如果前后的规则有重叠或者冲突，则后面的规则生效。如果 !README.md 在 *.md 之前，则以 *.md 为规则，README.md 依然会被排除。
+可以通过 .dockerignore 来排除 Dockerfile 和 .dockerignore 文件。但是这些文件依然会发送到 Docker daemon。不过，ADD 和 COPY 指令将不会拷贝它们。
 ```
 
 # 参考链接
