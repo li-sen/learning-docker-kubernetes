@@ -21,10 +21,10 @@ init_connect = 'SET NAMES utf8mb4'
 init_connect='SET collation_connection = utf8mb4_unicode_ci' 
 skip-name-resolve
 query_cache_size = 0
-log-error = /data/db/error.log
+log-error = /var/log/mysql/error.log
 slow-query-log = 1
 long_query_time = 2
-slow-query-log-file = /data/db/slow.log
+slow-query-log-file = /var/log/mysql/slow.log
 expire-logs-days = 1
 default-storage-engine = innodb
 innodb-buffer-pool-size = 1G
