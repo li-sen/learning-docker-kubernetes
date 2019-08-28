@@ -95,7 +95,7 @@ docker 容器运行 ，容器的最上层是一个可读写的临时层，下面
 当我们在运行的容器中 修改一个文件时，该文件会 从
 镜像只读层中 复制一份到 容器运行 的读写层 进行修改，而只读版本仍然存在于 镜像层中，只是 在读写层中进行了 隐藏屏蔽， 这样就避免了 对镜像层的 修改，保证了镜像的 一致性 和 可移植性。
 
-![容器文件系统](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker/docker_fs.png)
+![容器文件系统](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker-kubernetes/docker_fs.png)
 
 此种联合文件系统，利用Copy-on-Write 机制如下特性（以AUFS 为例）：
 
@@ -129,7 +129,7 @@ OverlayFS（overlay2），它可以看做AUFS的升级加强版，两者基本�
 OverlayFS关联的底层目录称为lowerdir， 
 对应的高层目录称为upperdir。合并过后统一视图称为merged。下图是一个docker镜像和docke容器的分层图，docker镜像是lowdir，docker容器是upperdir。而统一的视图层是merged层 
 
-![overlayfs](http://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker/docker_overlayfs.jpg)
+![overlayfs](http://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker-kubernetes/docker_overlayfs.jpg)
 
 读文件的时候，如果文件在upperdir则直接读取，文件不在upperdir则从lowerdir读，如果写的文件不在uppderdir在lowerdir，则从lowerdir里面copy到upperdir，不管文件多大，copy完再写，删除或者重命名镜像层的文件都只是在容器层生成whiteout文件标志。
 

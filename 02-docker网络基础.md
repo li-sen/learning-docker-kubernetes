@@ -290,7 +290,7 @@ round-trip min/avg/max = 0.077/0.086/0.103 ms
 > 如果找不到brctl，yum install bridge-utils
 
 ## bridge网络拓扑图
-![网络拓扑](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker/docker_network.png)
+![网络拓扑](https://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker-kubernetes/docker_network.png)
 
 由于docker0 bridge上的所有容器都在同一网段中，所以此bridge上的容器可以成功通信，
 如果有安全要求，可以在DOCKER_OPTS变量中设置–icc=false，禁止它们之间通信，这样只有使用--link才能使两个容器通信。
