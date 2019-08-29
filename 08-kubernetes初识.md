@@ -61,7 +61,7 @@ Kubernetes项目 继承了谷歌内部 使用沉淀多年的Borg/Omega项目设�
 
 需要注意，虽然etcd可以存储数据，但不要滥用，它运行raft协议保证整个系统中数据一致，因此写入、读取速度都是很慢的。kubernetes早期支持的Node数量有限，就是因为etcd是瓶颈。etcd主要在一些分布式系统中提供选举功能。
 
-
+# kubernetes工作流程
 现在我们了解了每个组件的核心功能，这里假设使用 kubectl 创建一个 nginx pod（容器组，后面进行解释） 运行在kubernetes上，大概的工作流程是怎么样的呢？
 
 流程图是这样：
