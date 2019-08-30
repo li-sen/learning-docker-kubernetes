@@ -61,6 +61,16 @@ Kubernetes项目 继承了谷歌内部 使用沉淀多年的Borg/Omega项目设�
 
 需要注意，虽然etcd可以存储数据，但不要滥用，它运行raft协议保证整个系统中数据一致，因此写入、读取速度都是很慢的。kubernetes早期支持的Node数量有限，就是因为etcd是瓶颈。etcd主要在一些分布式系统中提供选举功能。
 
+# Kubernetes的特点：
+- 自动装箱。基于资源和依赖自动部署服务。
+- 自我修复。当有一个容器挂了，能够自动启动一个新的同样服务替换故障的容器。
+- 自动实现水平扩展。只要物理资源充足，设置触发阈值，可以实现自动实现水平伸缩服务。
+- 自动服务发现和负载均衡。service能够提供稳定的访问端点和负载均衡。
+- 自动发布和回滚。
+- 秘钥和配置管理。
+- 存储编排，存储卷动态供给。
+- 批量处理执行。
+
 # kubernetes工作流程
 现在我们了解了每个组件的核心功能，这里假设使用 kubectl 创建一个 nginx pod（容器组，后面进行解释） 运行在kubernetes上，大概的工作流程是怎么样的呢？
 
@@ -68,15 +78,40 @@ Kubernetes项目 继承了谷歌内部 使用沉淀多年的Borg/Omega项目设�
 
 ![k8s工作流程](http://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker-kubernetes/k8s03.png)
 
-用户使用  kubectl run nginx --image=nginx命令  通过 kube-apiserver REST API 创建一个 Pod
+用户使用  kubectl run nginx --image=nginx命令  通过 kube-apiserver REST API 创建一个 Pod。
 
-kube-apiserver 将其写入 etcd
+kube-apiserver 将其写入 etcd。
 
-kube-scheduluer 监听etcd 收到任务，根据pod 要求选取 node 节点，开始调度并更新 Pod 的 Node 绑定
+kube-scheduluer 监听etcd 收到任务，根据pod 要求选取 node 节点，开始调度并更新 Pod 的 Node 绑定。
 
-kubelet 检测到有新的 Pod 调度过来，通过 container runtime 运行该 Pod
+kubelet 检测到有新的 Pod 调度过来，通过 container runtime 运行该 Pod。
 
-kubelet 通过 container runtime 取到 Pod 状态，并更新到 apiserver，写入etcd中 
+kubelet 通过 container runtime 取到 Pod 状态，并更新到 apiserver，写入etcd中 。
+
+# kubernetes 基本概念
+在 kubernetes 中 涉及了以前 你 可能从来 没有听闻的 概念，但 这些 涉及逻辑是 经过 Google 十几年甚至 几十年的经验沉淀，想做到 普适性，顶层涉及必须得先进。
+kubernetes中 
+
+## Pod
+Pod 可以理解为 容器组，由一个或多个容器组成，是在Kubernetes集群中运行部署应用或服务的最小单元，Pod中的所有容器共享网络地址和文件系统，可以通过进程间通信和文件共享这种简单高效的方式组合完成服务。
+比如 你运行一个mysql 容器，你还想对mysql做监控，部署了一个mysql的监控服务，那么你就可以 让这两个不同的容器 跑在一个 Pod，这样他们 协作起来更快速、也更安全。
+
+
+## RC/RS
+
+
+
+
+## Deployment
+## Namespace
+## Service
+## DaemonSet
+## StatefulSet
+## User Account、Service Account
+## Job
+## Volume
+## PV、PVC
+## Configmap、Secret
 
 
 
