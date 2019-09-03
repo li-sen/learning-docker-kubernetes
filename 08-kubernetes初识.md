@@ -16,6 +16,16 @@ kubernetes是 谷歌基于 自家 Borg/Omega 推出的 开源 容器编排项目
 集群的方式 被合理 调度 、水平扩展、自我修复并提供 服务发现、负载均衡、路由网关等高级特性，显然 这一切的 需求 但靠 docker 是满足不了的，也就是在这
 需求下，容器编排 就应运而生了；在此同时 docker公司发展如日中天，加紧了 商业化的步伐推出了 docker Swarm，这无疑是触动了云计算领域大佬们的蛋糕，Google 为了 对抗 docker公司 商业化步伐，牵手 Redhat 推了 容器编排平台 --kubernetes。
 
+# Kubernetes的特点：
+- 自动装箱。基于资源和依赖自动部署服务。
+- 自我修复。当有一个容器挂了，能够自动启动一个新的同样服务替换故障的容器。
+- 自动实现水平扩展。只要物理资源充足，设置触发阈值，可以实现自动实现水平伸缩服务。
+- 自动服务发现和负载均衡。service能够提供稳定的访问端点和负载均衡。
+- 自动发布和回滚。
+- 秘钥和配置管理。
+- 存储编排，存储卷动态供给。
+- 批量处理执行。
+
 # kubernetes 基本架构
 Kubernetes项目 继承了谷歌内部 使用沉淀多年的Borg/Omega项目设计以及理论，在 与其他容器平台竞争中有着天然的优势，并且在社区的 推动下 不断的改进 和规避了 以前 Borg/Omega 很多缺陷和问题，那让我们来看下kubernetes 整体架构：
 ![整体架构](http://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker-kubernetes/k8s01.png)
@@ -28,65 +38,39 @@ Kubernetes项目 继承了谷歌内部 使用沉淀多年的Borg/Omega项目设�
 - 集群数据存储：etcd，一般部署在master节点，集群数量必须为奇数。
 
 下面就简单的说下这些组件的核心功能：
+master角色：
 - kube-apiserver 提供了资源操作的唯一入口，并提供认证、授权、访问控制、API注册和发现等机制；
-- kube-controller-manager 负责维护集群的状态，比如故障检测、自动扩展、滚动更新等；
+- kube-controller-manager 负责维护集群的状态，实现 任务调度，比如deployment控制器、故障检测、自动扩展、滚动更新等；
 - kube-scheduler 负责资源的调度，按照预定的调度策略将Pod调度到相应的机器上；
 - cloud-controller-manager，为了使 kubernetes更好的跟 云厂商 生态做集成，独立出来的组件，目的是 让云服务商相关的代码和K8S核心解耦，相互独立演进，统一负责 跟云服务进行交互。 
-- etcd 一个基于raft协议实现高可用的 Key/Value 存储系统，它通过kube-apiserver保存了整个集群的状态；
+- etcd 存储Kubernetes 的集群状态的，它除了具备状态存储的功能，还有事件监听和订阅、Leader选举的功能；
+> 所谓事件监听和订阅，各个其他组件通信，都并不是互相调用 API 来完成的，而是把状态写入 ETCD（相当于写入一个消息），其他组件通过监听 ETCD 的状态的的变化（相当于订阅消息），然后做后续的处理，然后再一次把更新的数据写入 ETCD。
+> 所谓 Leader 选举，其它一些组件比如 Scheduler，为了做实现高可用，通过 ETCD 从多个（通常是3个）实例里面选举出来一个做Master，其他都是Standby。
 
-- kubelet负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理；
+node角色：
+- kubelet 可以看做一个agent，负责维护容器的生命周期，同时也负责Volume（CVI）和网络（CNI）的管理；
 - container runtime 负责镜像管理以及Pod和容器的真正运行（CRI），一般来说就是docker 或者 containerd；
-- kube-proxy 负责为Service提供cluster内部的服务发现和负载均衡；
+- kube-proxy 负责为service提供cluster内部的服务发现和负载均衡；
+- kubectl kubernetes原生的 命令行工具，通过 Kubectl 命令对 API Server 进行操作，实现对 kubernetes集群管理工作。
 
-- kubectl kubernetes原生的 客户端工具，通过 Kubectl 命令对 API Server 进行操作，实现对 kubernetes集群管理工作。
-- addons： 包括 coredns负载集群内的dns解析；flannel/calico网络插件，提供跨节点的网络访问，这两个addons是集群必需，其他的非必需addons 后面再进行介绍。
+addons：
+包括 coredns负载集群内的dns解析；flannel/calico网络插件，提供跨节点的网络访问，这两个addons是集群必需，其他的非必需addons 后面再进行介绍。
 
-
-这里详细讲下etcd，以及kubernetes为什么使用它存储集群状态：
-
-首先etcd 是一个基于raft协议实现高可用的 Key/Value 存储系统，并且有一个特写就是 消息发布与订阅，可以调用它的api监听其中的数据，一旦数据发生变化了，就会收到通知。有了这个特性之后，kubernetes中的每个组件只需要监听etcd中数据，就可以知道自己应该做什么。
-
-在kubernetes中，集群的数据是随时发生变化的，比如说用户提交了新任务、增加了新的Node、Node宕机了、容器死掉了等等，都会触发状态数据的变更，状态数据变更之后呢，都需要通知 kubernetes上的 一系列组件 进行相应的动作来保证集群状态健康，
-这些特性 etcd 完美适配，
-
-试想一下，如果没有etcd，那么要怎样做？
-一种是消息的方式，比如说NodeA有了新的任务，Master直接给NodeA发一个消息；一种是轮询的方式，大家都把数据写到同一个地方，每个人自觉地盯着看，及时发现变化。
-前者演化出rabbitmq这样的消息队列系统，后者演化出一些有订阅功能的分布式系统。
-
-第一种方式的问题是，所有要通信的组件之间都要建立长连接，并且要处理各种异常情况，比例如连接断开、数据发送失败等。不过有了消息队列(message queue)这样的中间件之后，问题就简单多了，组件都和mq建立连接即可，将各种异常情况都在mq中处理。
-
-那么为什么kubernetes没有选用mq而是选用etcd呢？mq和etcd是本质上完全不同的系统，mq的作用消息传递，不储存数据（消息积压不算储存，因为没有查询的功能），etcd是个分布式存储（它的设计目标是分布式锁，顺带有了存储功能），是一个带有订阅功能的key-value存储。如果使用mq，那么还需要引入数据库，在数据库中存放状态数据。
-
-选择etcd还有一个好处，etcd使用raft协议实现一致性，它是一个分布式锁，可以用来做选举。如果在kubernetes中部署了多个kube-schdeuler，那么同一时刻只能有一个kube-scheduler在工作，否则各自安排各自的工作，就乱套了。怎样保证只有一个kube-schduler在工作呢？通过etcd选举出一个leader。
-
-需要注意，虽然etcd可以存储数据，但不要滥用，它运行raft协议保证整个系统中数据一致，因此写入、读取速度都是很慢的。kubernetes早期支持的Node数量有限，就是因为etcd是瓶颈。etcd主要在一些分布式系统中提供选举功能。
-
-# Kubernetes的特点：
-- 自动装箱。基于资源和依赖自动部署服务。
-- 自我修复。当有一个容器挂了，能够自动启动一个新的同样服务替换故障的容器。
-- 自动实现水平扩展。只要物理资源充足，设置触发阈值，可以实现自动实现水平伸缩服务。
-- 自动服务发现和负载均衡。service能够提供稳定的访问端点和负载均衡。
-- 自动发布和回滚。
-- 秘钥和配置管理。
-- 存储编排，存储卷动态供给。
-- 批量处理执行。
 
 # kubernetes工作流程
-现在我们了解了每个组件的核心功能，这里假设使用 kubectl 创建一个 nginx pod（容器组，后面进行解释） 运行在kubernetes上，大概的工作流程是怎么样的呢？
+现在我们了解了每个组件的核心功能，这里假设使用 kubectl 创建一个多实例的 nginx pod（容器组，后面进行解释） 运行在kubernetes上，大概的工作流程是怎么样的呢？
 
-流程图是这样：
+通过kubectl命令行 kubectl run nginx --image=nginx --replicas=2 ，创建一个包含nginx的deployment对象，kubectl会调用 apiserver 往etcd里面写入一个 deployment对象。
 
-![k8s工作流程](http://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker-kubernetes/k8s03.png)
+Deployment Controller 监听到有新的 Deployment对象被写入，就获取到对象信息，根据对象信息来做任务调度，创建对应的 Replica Set 对象。
 
-用户使用  kubectl run nginx --image=nginx命令  通过 kube-apiserver REST API 创建一个 Pod。
+Replica Set Controller监听到有新的对象被创建，也读取到对象信息来做任务调度，创建对应的Pod来。
 
-kube-apiserver 将其写入 etcd。
+Scheduler 监听到有新的 Pod 被创建，读取到Pod对象信息，根据集群状态将Pod调度到某一个节点上，然后更新Pod（内部操作是将Pod和节点绑定）。
 
-kube-scheduluer 监听etcd 收到任务，根据pod 要求选取 node 节点，开始调度并更新 Pod 的 Node 绑定。
+Kubelet 监听到当前的节点被指定了新的Pod，就根据对象信息运行Pod。 
 
-kubelet 检测到有新的 Pod 调度过来，通过 container runtime 运行该 Pod。
-
-kubelet 通过 container runtime 取到 Pod 状态，并更新到 apiserver，写入etcd中 。
+> 这里只是简单描述 大体流程，忽略了很多细节，让大家明白 各组件间 如何协作。
 
 # kubernetes 基本概念
 在 kubernetes 中 涉及了以前 你 可能从来 没有听闻的 概念，但 这些 涉及逻辑是 经过 Google 十几年甚至 几十年的经验沉淀，想做到 普适性，顶层涉及必须得先进。
