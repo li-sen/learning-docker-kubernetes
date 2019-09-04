@@ -45,6 +45,7 @@ master角色：
 - cloud-controller-manager，为了使 kubernetes更好的跟 云厂商 生态做集成，独立出来的组件，目的是 让云服务商相关的代码和K8S核心解耦，相互独立演进，统一负责 跟云服务进行交互。 
 - etcd 存储Kubernetes 的集群状态的，它除了具备状态存储的功能，还有事件监听和订阅、Leader选举的功能；
 > 所谓事件监听和订阅，各个其他组件通信，都并不是互相调用 API 来完成的，而是把状态写入 ETCD（相当于写入一个消息），其他组件通过监听 ETCD 的状态的的变化（相当于订阅消息），然后做后续的处理，然后再一次把更新的数据写入 ETCD。
+
 > 所谓 Leader 选举，其它一些组件比如 Scheduler，为了做实现高可用，通过 ETCD 从多个（通常是3个）实例里面选举出来一个做Master，其他都是Standby。
 
 node角色：
@@ -70,11 +71,13 @@ Scheduler 监听到有新的 Pod 被创建，读取到Pod对象信息，根据�
 
 Kubelet 监听到当前的节点被指定了新的Pod，就根据对象信息运行Pod。 
 
+![大概流程](http://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker-kubernetes/k8s03.png)
+
 > 这里只是简单描述 大体流程，忽略了很多细节，让大家明白 各组件间 如何协作。
 
 # kubernetes 基本概念
-在 kubernetes 中 涉及了以前 你 可能从来 没有听闻的 概念，但 这些 涉及逻辑是 经过 Google 十几年甚至 几十年的经验沉淀，想做到 普适性，顶层涉及必须得先进。
-kubernetes中 
+在 kubernetes 中 涉及了以前 你 可能从来 没有听闻的 概念，但 这些 涉及逻辑是 经过 Google 十几年甚至 几十年的经验沉淀，想做到 普适性，顶层涉及必须得先进，让我们一起来了解下
+k8s中的基本概念。
 
 ## Pod
 Pod 可以理解为 容器组，由一个或多个容器组成，是在Kubernetes集群中运行部署应用或服务的最小单元，Pod中的所有容器共享网络地址和文件系统，可以通过进程间通信和文件共享这种简单高效的方式组合完成服务。
@@ -82,9 +85,9 @@ Pod 可以理解为 容器组，由一个或多个容器组成，是在Kubernete
 
 
 ## RC/RS
+副本
 
-
-
+## Label
 
 ## Deployment
 ## Namespace
