@@ -117,6 +117,19 @@ Annotation 注解，和label一样都是key/value键值对映射结构，可以�
 
 Service简单来讲就是 为pod通过服务入口并提供负载均衡。比如 一个java应用 以deployment方式 部署了多个 Pod，那 其他的应用或外部用户怎么来访问？这就需要一个统一的入口进行代理，并且还能做流量负载，在kubernetes中 Service就是起到这样的作用。
 
+Service 通过Label Selector 选取Pod，一般配合 Deployment 来保证后端容器的正常运行。
+
+这些匹配标签的 Pod IP 和端口列表组成 endpoints，由 kube-proxy 负责将服务 IP 负载均衡到这些 endpoints 上。
+
+Service 有四种类型：
+
+- ClusterIP：默认类型，自动分配一个仅 cluster 内部可以访问的虚拟 IP
+- NodePort：在 ClusterIP 基础上为 Service 在每台机器上绑定一个端口，这样就可以通过 `<NodeIP>:NodePort` 来访问该服务。
+- LoadBalancer：在 NodePort 的基础上，借助 cloud provider 创建一个外部的负载均衡器，并将请求转发到 `<NodeIP>:NodePort`
+- ExternalName：将服务通过 DNS CNAME 记录方式转发到指定的域名（通过 `spec.externlName` 设定）。
+
+另外，也可以将集群外已有的服务以 Service 的形式加入到 Kubernetes 集群中来，只需要在创建 Service 的时候不指定 Label selector，而是在 Service 创建好后手动为其添加 endpoint即可。
+
 ![Service](http://lisen-imgs.oss-cn-hangzhou.aliyuncs.com/learning-docker-kubernetes/k8s06.jpg)
 
 Services 一般用于内部集群应用间调用，Ingress 用于集群内部服务以http协议方式暴露到外部。
