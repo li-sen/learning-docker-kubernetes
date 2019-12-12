@@ -221,4 +221,12 @@ docker run -it -v /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro -v /etc/ti
 ### oracle
 docker run -d -p 8081:8080 -p 1521:1521 -v /opt/oracle:/u01/app/oracle jaspeen/oracle-11g
 # 连接方式 见 hub仓库说明
+
+### vsftpd
+docker run -itd --name ftp-server -v /opt/test:/home/vsftpd/zhangsan/test \
+-p 20:20 -p 21:21 -p  21100-21110:21100-21110 \
+-e FTP_USER=zhangsan -e FTP_PASS=xxxx \
+-e /opt/test -e PASV_MIN_PORT=21100 -e PASV_MAX_PORT=21110 \
+--name vsftpd --restart=always fauria/vsftpd  
+
 ```
