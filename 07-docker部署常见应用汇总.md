@@ -223,10 +223,22 @@ docker run -d -p 8081:8080 -p 1521:1521 -v /opt/oracle:/u01/app/oracle jaspeen/o
 # 连接方式 见 hub仓库说明
 
 ### vsftpd
-docker run -itd --name ftp-server -v /opt/test:/home/vsftpd/zhangsan/test \
--p 20:20 -p 21:21 -p  21100-21110:21100-21110 \
--e FTP_USER=zhangsan -e FTP_PASS=xxxx \
--e /opt/test -e PASV_MIN_PORT=21100 -e PASV_MAX_PORT=21110 \
---name vsftpd --restart=always fauria/vsftpd  
+docker run -d \
+-v /opt/ftp:/home/vsftpd/ftp \
+-p 20:20 \
+-p 21:21 \
+-p 21100-21110:21100-21110 \
+-e FTP_USER=ftp \
+-e FTP_PASS=xxx \
+-e PASV_ADDRESS=192.16.1.222 \
+-e PASV_MIN_PORT=21100 \
+-e PASV_MAX_PORT=21100 \
+--name vsftpd \
+--restart=always \
+fauria/vsftpd
+# PASV_ADDRESS=192.16.1.222 必需
+
+### nginx
+docker run --name nginx  -itd -v /opt/ftp/yuanxingtu:/usr/share/nginx/html -p 81:80 nginx  
 
 ```
