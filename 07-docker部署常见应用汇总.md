@@ -39,7 +39,7 @@ max_connections = 500
 default-character-set = utf8mb4
 EOF
 
-docker run --name mysql -d --restart=always -e TZ="Asia/Shanghai" --network=host -P -v /opt/mysql/my.cnf:/etc/mysql/my.cnf -v /opt/mysql/logs:/logs -v /opt/mysql/data:/mysql_data -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7
+docker run --name mysql -d --restart=always -e TZ="Asia/Shanghai" --network=host -P -v /opt/mysql/my.cnf:/etc/mysql/my.cnf -v /opt/mysql/logs:/logs -v /opt/mysql/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=123456  mysql:5.7
 
 # 主从复制
 # 这里就贴下 主从相关的部分配置 其他配置 参考 单实例的 配置文件
